@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AutoSpread Engine Pro - Enterprise Excel Formula & Template Populator</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              800: '#3730a3',
+              900: '#312e81',
+            }
+          },
+          fontFamily: {
+            mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- SheetJS (xlsx.full.min.js) for true client-side Excel parsing & creation -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    /* Custom scrollbar and subtle enterprise animations */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .dark ::-webkit-scrollbar-track { background: #1e293b; }
+    .dark ::-webkit-scrollbar-thumb { background: #475569; }
+    .glass-panel { backdrop-filter: blur(12px); background: rgba(255, 255, 255, 0.92); }
+    .table-cell-truncate { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .formula-font { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col font-sans selection:bg-brand-500 selection:text-white">
+
+  <header class="border-b border-slate-200 bg-white sticky top-0 z-40 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+          <i data-lucide="layers" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="font-bold text-lg tracking-tight text-slate-900">AutoSpread</span>
+            <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-brand-50 text-brand-700 border border-brand-200 uppercase tracking-wider">Engine Pro</span>
+          </div>
+          <p class="text-xs text-slate-500 hidden sm:block">Automated Header Resolution, Intelligent Cross-Sheet Formulas & Generation</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-3">
+        <!-- 1-Click Demo Loader -->
+        <button id="btn-load-demo" class="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium shadow-xs transition-colors">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500"></i>
+          <span>Load Enterprise Demo</span>
+        </button>
+        <button id="btn-reset-all" class="inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 text-xs font-medium transition-colors">
+          <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+          <span class="hidden md:inline">Reset</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="bg-white border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
+      <div class="flex items-center justify-between max-w-3xl mx-auto">
+        
+        <!-- Step 1 -->
+        <div id="step-node-1" class="flex items-center space-x-3 group cursor-pointer" onclick="goToStep(1)">
+          <div class="step-badge w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center font-semibold text-xs shadow-sm ring-4 ring-brand-100 transition-all">1</div>
+          <div class="text-left">
+            <p class="text-xs font-bold text-slate-900 leading-tight">Data & Templates</p>
+            <p class="text-[11px] text-slate-500">Upload & Inspect</p>
+          </div>
+        </div>
+
+        <div class="flex-1 h-0.5 mx-4 bg-slate-200" id="step-bar-1"></div>
+
+        <!-- Step 2 -->
+        <div id="step-node-2" class="flex items-center space-x-3 group cursor-pointer opacity-60" onclick="goToStep(2)">
+          <div class="step-badge w-8 h-8 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center font-semibold text-xs transition-all">2</div>
+          <div class="text-left">
+            <p class="text-xs font-bold text-slate-700 leading-tight">Auto-Match & Rules</p>
+            <p class="text-[11px] text-slate-500">AI Matching & Formulas</p>
+          </div>
+        </div>
+
+        <div class="flex-1 h-0.5 mx-4 bg-slate-200" id="step-bar-2"></div>
+
+        <!-- Step 3 -->
+        <div id="step-node-3" class="flex items-center space-x-3 group cursor-pointer opacity-60" onclick="goToStep(3)">
+          <div class="step-badge w-8 h-8 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center font-semibold text-xs transition-all">3</div>
+          <div class="text-left">
+            <p class="text-xs font-bold text-slate-700 leading-tight">Preview & Export</p>
+            <p class="text-[11px] text-slate-500">Verify Formulas & Download</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Toast Container -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- ================= STEP 1: FILE INGESTION & SETUP ================= -->
+    <section id="step-1-container" class="space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- File 1: Source Raw Data File -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col justify-between hover:border-slate-300 transition-all">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center space-x-2.5">
+                <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-200">
+                  <i data-lucide="database" class="w-4 h-4"></i>
+                </div>
+                <div>
+                  <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wide">1. Source Data Excel</h2>
+                  <p class="text-xs text-slate-500">File containing raw records and values (.xlsx, .csv)</p>
+                </div>
+              </div>
+              <span id="data-status-badge" class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">Awaiting File</span>
+            </div>
+
+            <!-- Drag & Drop Area -->
+            <div id="drop-source" class="border-2 border-dashed border-slate-200 hover:border-brand-500 rounded-xl p-6 text-center cursor-pointer transition-colors bg-slate-50/50 hover:bg-brand-50/30 group">
+              <input type="file" id="input-source" class="hidden" accept=".xlsx, .xls, .csv">
+              <div class="flex flex-col items-center justify-center space-y-2">
+                <div class="w-12 h-12 rounded-full bg-slate-100 group-hover:bg-brand-100 group-hover:text-brand-600 text-slate-400 flex items-center justify-center transition-colors">
+                  <i data-lucide="upload-cloud" class="w-6 h-6"></i>
+                </div>
+                <p class="text-xs font-semibold text-slate-700">Click to browse or drag & drop Source Excel</p>
+                <p class="text-[11px] text-slate-400">Supports .xlsx, .xls, .csv up to 25MB</p>
+              </div>
+            </div>
+
+            <!-- Source Workbook Controls (Visible once loaded) -->
+            <div id="source-controls" class="hidden mt-4 pt-4 border-t border-slate-100 space-y-3">
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-slate-500 font-medium">Sheet Tab:</span>
+                <select id="source-sheet-select" class="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-slate-700 text-xs font-medium focus:ring-1 focus:ring-brand-500"></select>
+              </div>
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-slate-500 font-medium">Header Row:</span>
+                <div class="flex items-center space-x-1">
+                  <span class="text-slate-400 text-[11px]">Row</span>
+                  <input type="number" id="source-header-row" value="1" min="1" max="50" class="w-16 bg-slate-50 border border-slate-200 rounded-lg px-2 py-0.5 text-center text-xs font-medium">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Preview Table snippet -->
+          <div id="source-table-preview-box" class="hidden mt-4 pt-3 border-t border-slate-100">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Source Preview (<span id="source-row-count">0</span> rows)</span>
+            </div>
+            <div class="overflow-x-auto max-h-40 border border-slate-100 rounded-lg bg-slate-50 text-[11px]">
+              <table id="source-table-preview" class="w-full text-left divide-y divide-slate-200"></table>
+            </div>
+          </div>
+        </div>
+
+        <!-- File 2: Template Structure File -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col justify-between hover:border-slate-300 transition-all">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center space-x-2.5">
+                <div class="w-8 h-8 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center border border-brand-200">
+                  <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                </div>
+                <div>
+                  <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wide">2. Target Template Excel</h2>
+                  <p class="text-xs text-slate-500">Destination sheet with pre-defined headers</p>
+                </div>
+              </div>
+              <span id="template-status-badge" class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">Awaiting File</span>
+            </div>
+
+            <!-- Drag & Drop Area -->
+            <div id="drop-template" class="border-2 border-dashed border-slate-200 hover:border-brand-500 rounded-xl p-6 text-center cursor-pointer transition-colors bg-slate-50/50 hover:bg-brand-50/30 group">
+              <input type="file" id="input-template" class="hidden" accept=".xlsx, .xls, .csv">
+              <div class="flex flex-col items-center justify-center space-y-2">
+                <div class="w-12 h-12 rounded-full bg-slate-100 group-hover:bg-brand-100 group-hover:text-brand-600 text-slate-400 flex items-center justify-center transition-colors">
+                  <i data-lucide="file-check-2" class="w-6 h-6"></i>
+                </div>
+                <p class="text-xs font-semibold text-slate-700">Click to browse or drag & drop Template Excel</p>
+                <p class="text-[11px] text-slate-400">Empty or pre-formatted heading headers</p>
+              </div>
+            </div>
+
+            <!-- Template Controls -->
+            <div id="template-controls" class="hidden mt-4 pt-4 border-t border-slate-100 space-y-3">
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-slate-500 font-medium">Sheet Tab:</span>
+                <select id="template-sheet-select" class="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-slate-700 text-xs font-medium focus:ring-1 focus:ring-brand-500"></select>
+              </div>
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-slate-500 font-medium">Header Row:</span>
+                <div class="flex items-center space-x-1">
+                  <span class="text-slate-400 text-[11px]">Row</span>
+                  <input type="number" id="template-header-row" value="1" min="1" max="50" class="w-16 bg-slate-50 border border-slate-200 rounded-lg px-2 py-0.5 text-center text-xs font-medium">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Template Headers snippet -->
+          <div id="template-table-preview-box" class="hidden mt-4 pt-3 border-t border-slate-100">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Detected Target Columns (<span id="template-col-count">0</span> columns)</span>
+            </div>
+            <div id="template-headers-chips" class="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-1"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Bar -->
+      <div class="flex justify-end pt-2">
+        <button id="btn-proceed-step-2" disabled class="px-6 py-2.5 rounded-xl bg-slate-200 text-slate-400 cursor-not-allowed font-semibold text-xs inline-flex items-center space-x-2 transition-all shadow-xs">
+          <span>Proceed to Auto-Match & Rules</span>
+          <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </section>
+
+    <!-- ================= STEP 2: COLUMN MATCHING & FORMULA ENGINE ================= -->
+    <section id="step-2-container" class="hidden space-y-6">
+      
+      <!-- Engine Controls Header -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 class="text-base font-bold text-slate-900 flex items-center space-x-2">
+            <span>Intelligent Header Alignment & Formula Matrix</span>
+            <span class="px-2 py-0.5 rounded-full text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">Coordinate Aware</span>
+          </h2>
+          <p class="text-xs text-slate-500 mt-0.5">Identifies identical/duplicate headers (e.g. duplicate Dates or Amounts) and attaches dynamic formula templates.</p>
+        </div>
+
+        <div class="flex items-center flex-wrap gap-2">
+          <div class="flex items-center space-x-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs">
+            <span class="text-slate-500">Auto-match sensitivity:</span>
+            <select id="match-sensitivity" class="bg-transparent font-semibold text-slate-800 outline-none text-xs">
+              <option value="0.25">High (Aggressive)</option>
+              <option value="0.4" selected>Balanced (Standard)</option>
+              <option value="0.65">Strict (Exact matches)</option>
+            </select>
+          </div>
+
+          <button id="btn-trigger-automatch" class="px-3.5 py-1.5 rounded-lg bg-brand-50 hover:bg-brand-100 text-brand-700 border border-brand-200 text-xs font-semibold inline-flex items-center space-x-1.5 transition-colors">
+            <i data-lucide="wand-2" class="w-3.5 h-3.5"></i>
+            <span>Re-Run AI Auto-Match</span>
+          </button>
+          
+          <button id="btn-clear-rules" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-medium transition-colors">
+            Clear Mappings
+          </button>
+        </div>
+      </div>
+
+      <!-- Mapping Table / Rule Cards -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between">
+          <div class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center space-x-2">
+            <i data-lucide="git-merge" class="w-4 h-4 text-brand-600"></i>
+            <span>Template Column Target Rules (<span id="total-rule-count">0</span> Columns)</span>
+          </div>
+          <div class="flex items-center space-x-3 text-xs">
+            <span class="flex items-center space-x-1"><span class="w-2 h-2 rounded-full bg-emerald-500"></span><span class="text-slate-500">High Match</span></span>
+            <span class="flex items-center space-x-1"><span class="w-2 h-2 rounded-full bg-amber-500"></span><span class="text-slate-500">Fuzzy Match</span></span>
+            <span class="flex items-center space-x-1"><span class="w-2 h-2 rounded-full bg-slate-300"></span><span class="text-slate-500">Manual / Custom</span></span>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-100/70 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+                <th class="py-3 px-4 w-1/4">Template Target Column</th>
+                <th class="py-3 px-4 w-1/4">Source Column Match</th>
+                <th class="py-3 px-4 w-1/4">Formula Transformation Rule</th>
+                <th class="py-3 px-4 w-1/4">Resulting Excel Formula Preview</th>
+              </tr>
+            </thead>
+            <tbody id="mapping-rules-body" class="divide-y divide-slate-100 text-xs">
+              <!-- Dynamically Populated Rules -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Navigation buttons -->
+      <div class="flex items-center justify-between pt-2">
+        <button onclick="goToStep(1)" class="px-5 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs inline-flex items-center space-x-2 transition-colors">
+          <i data-lucide="arrow-left" class="w-4 h-4"></i>
+          <span>Back to Upload</span>
+        </button>
+
+        <button id="btn-proceed-step-3" class="px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs inline-flex items-center space-x-2 shadow-md shadow-brand-500/20 transition-all">
+          <span>Generate Live Spreadsheet Preview</span>
+          <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </section>
+
+    <!-- ================= STEP 3: LIVE PREVIEW & EXPORT ================= -->
+    <section id="step-3-container" class="hidden space-y-6">
+      
+      <!-- Top banner metrics -->
+      <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+          <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Source Records</p>
+          <p id="stat-source-rows" class="text-xl font-bold text-slate-800 mt-1">0</p>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+          <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Mapped Columns</p>
+          <p id="stat-mapped-cols" class="text-xl font-bold text-brand-600 mt-1">0</p>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+          <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Dynamic Formulas Injected</p>
+          <p id="stat-formula-count" class="text-xl font-bold text-emerald-600 mt-1">0</p>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
+          <div>
+            <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Workbook Status</p>
+            <p class="text-xs font-bold text-emerald-700 mt-1 flex items-center">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>
+              Ready to Export
+            </p>
+          </div>
+          <button id="btn-export-excel" class="px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-md shadow-emerald-600/20 inline-flex items-center space-x-1.5 transition-all">
+            <i data-lucide="download" class="w-4 h-4"></i>
+            <span>Export .XLSX</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Calculation Grid Preview -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-slate-200 bg-slate-50/80 flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 rounded-lg bg-indigo-50 text-brand-600 flex items-center justify-center border border-indigo-200">
+              <i data-lucide="table" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Populated Template Live Matrix Preview</h3>
+              <p class="text-[11px] text-slate-500">Formulas are rendered and linked dynamically directly against the SourceData sheet.</p>
+            </div>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <!-- View Mode Switch: Evaluated Values vs Raw Formulas -->
+            <div class="bg-slate-200 p-0.5 rounded-lg flex items-center text-xs">
+              <button id="btn-view-evaluated" class="px-2.5 py-1 rounded-md font-semibold text-xs bg-white text-slate-900 shadow-xs transition-colors">Evaluated Values</button>
+              <button id="btn-view-formulas" class="px-2.5 py-1 rounded-md font-semibold text-xs text-slate-600 hover:text-slate-900 transition-colors">Excel Formulas (fx)</button>
+            </div>
+
+            <!-- Page selector -->
+            <div class="flex items-center space-x-1 text-xs text-slate-500 pl-2 border-l border-slate-200">
+              <span>Page</span>
+              <button id="btn-prev-page" class="p-1 rounded hover:bg-slate-200 disabled:opacity-30"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+              <span id="preview-page-indicator" class="font-bold text-slate-700">1 / 1</span>
+              <button id="btn-next-page" class="p-1 rounded hover:bg-slate-200 disabled:opacity-30"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto max-h-[480px]">
+          <table class="w-full text-left border-collapse text-xs divide-y divide-slate-200">
+            <thead id="preview-table-header" class="bg-slate-100 text-slate-700 font-bold sticky top-0 z-10 shadow-xs">
+              <!-- Dynamically Rendered Header -->
+            </thead>
+            <tbody id="preview-table-body" class="divide-y divide-slate-100 bg-white font-mono text-[11px]">
+              <!-- Dynamically Rendered Preview Data -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Step 3 Action Navigation -->
+      <div class="flex items-center justify-between pt-2">
+        <button onclick="goToStep(2)" class="px-5 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs inline-flex items-center space-x-2 transition-colors">
+          <i data-lucide="arrow-left" class="w-4 h-4"></i>
+          <span>Modify Column Rules</span>
+        </button>
+
+        <div class="flex items-center space-x-3">
+          <button id="btn-export-excel-2" class="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs inline-flex items-center space-x-2 shadow-md shadow-emerald-600/20 transition-all">
+            <i data-lucide="download" class="w-4 h-4"></i>
+            <span>Export Populated Multi-Sheet Excel</span>
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <script>
+    // State Store
+    const state = {
+      currentStep: 1,
+      sourceWb: null,
+      sourceSheetName: '',
+      sourceData: [], // 2D array of rows
+      sourceHeaders: [], // [{colIdx, colLetter, name, label}]
+      sourceHeaderRow: 1,
+
+      templateWb: null,
+      templateSheetName: '',
+      templateHeaders: [], // [{colIdx, colLetter, name, label}]
+      templateHeaderRow: 1,
+
+      rules: [], // [{ templateColIdx, templateColLetter, templateName, sourceColIdx, formulaType, customFormula, lookupKeyColLetter }]
+      
+      previewMode: 'evaluated', // 'evaluated' | 'formula'
+      previewPage: 1,
+      previewPageSize: 15
+    };
+
+    // Helper: Excel Column Index (1-based) to Letter
+    function getColumnLetter(colIdx) {
+      let temp, letter = '';
+      while (colIdx > 0) {
+        temp = (colIdx - 1) % 26;
+        letter = String.fromCharCode(temp + 65) + letter;
+        colIdx = Math.floor((colIdx - temp) - 1) / 26;
+      }
+      return letter;
+    }
+
+    // String Normalization
+    function normalizeText(str) {
+      if (!str) return '';
+      return String(str)
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function computeLevenshtein(a, b) {
+      const dp = Array.from({ length: a.length + 1 }, () => Array(b.length + 1).fill(0));
+      for (let i = 0; i <= a.length; i++) dp[i][0] = i;
+      for (let j = 0; j <= b.length; j++) dp[0][j] = j;
+      for (let i = 1; i <= a.length; i++) {
+        for (let j = 1; j <= b.length; j++) {
+          const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+          dp[i][j] = Math.min(
+            dp[i - 1][j] + 1,
+            dp[i][j - 1] + 1,
+            dp[i - 1][j - 1] + cost
+          );
+        }
+      }
+      return dp[a.length][b.length];
+    }
+
+    function calculateMatchScore(tStr, sStr) {
+      const cleanT = normalizeText(tStr);
+      const cleanS = normalizeText(sStr);
+      if (!cleanT || !cleanS) return 0;
+      if (cleanT === cleanS) return 1.0;
+
+      // Common abbreviation / synonym dictionary
+      const synonyms = {
+        'amt': 'amount',
+        'qty': 'quantity',
+        'no': 'number',
+        'num': 'number',
+        'cust': 'customer',
+        'val': 'value',
+        'dt': 'date',
+        'desc': 'description',
+        'id': 'identifier'
+      };
+
+      const expand = (s) => s.split(' ').map(w => synonyms[w] || w).join(' ');
+      const expT = expand(cleanT);
+      const expS = expand(cleanS);
+      if (expT === expS) return 0.95;
+
+      // Token Overlap
+      const setT = new Set(expT.split(' '));
+      const setS = new Set(expS.split(' '));
+      let intersection = 0;
+      setT.forEach(w => { if (setS.has(w)) intersection++; });
+      const jaccard = intersection / Math.max(new Set([...setT, ...setS]).size, 1);
+
+      // Levenshtein similarity
+      const maxLen = Math.max(expT.length, expS.length);
+      const dist = computeLevenshtein(expT, expS);
+      const levScore = 1 - (dist / maxLen);
+
+      // Substring bonus
+      let subBonus = 0;
+      if (expT.includes(expS) || expS.includes(expT)) subBonus = 0.2;
+
+      return Math.min(1.0, (jaccard * 0.5) + (levScore * 0.4) + subBonus);
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      
+      const bgMap = {
+        success: 'bg-emerald-800 text-white border-emerald-600',
+        error: 'bg-rose-800 text-white border-rose-600',
+        info: 'bg-slate-900 text-white border-slate-700'
+      };
+
+      toast.className = `px-4 py-2.5 rounded-xl shadow-lg border text-xs font-medium flex items-center space-x-2 transition-all transform duration-200 translate-y-2 opacity-0 pointer-events-auto ${bgMap[type] || bgMap.info}`;
+      toast.innerHTML = `
+        <i data-lucide="${type === 'success' ? 'check-circle-2' : type === 'error' ? 'alert-triangle' : 'info'}" class="w-4 h-4"></i>
+        <span>${message}</span>
+      `;
+
+      container.appendChild(toast);
+      lucide.createIcons();
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      });
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 250);
+      }, 3500);
+    }
+
+    function goToStep(step) {
+      if (step === 2 && (!state.sourceWb || !state.templateWb)) {
+        showToast('Please upload or load both files first.', 'error');
+        return;
+      }
+      if (step === 3 && state.rules.length === 0) {
+        showToast('Configure at least one column rule first.', 'error');
+        return;
+      }
+
+      state.currentStep = step;
+
+      // Toggle views
+      document.getElementById('step-1-container').classList.toggle('hidden', step !== 1);
+      document.getElementById('step-2-container').classList.toggle('hidden', step !== 2);
+      document.getElementById('step-3-container').classList.toggle('hidden', step !== 3);
+
+      // Update stepper badges
+      for (let i = 1; i <= 3; i++) {
+        const node = document.getElementById(`step-node-${i}`);
+        const badge = node.querySelector('.step-badge');
+        if (i < step) {
+          node.classList.remove('opacity-60');
+          badge.className = 'step-badge w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-semibold text-xs shadow-sm transition-all';
+          badge.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i>';
+        } else if (i === step) {
+          node.classList.remove('opacity-60');
+          badge.className = 'step-badge w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center font-semibold text-xs shadow-sm ring-4 ring-brand-100 transition-all';
+          badge.innerHTML = `${i}`;
+        } else {
+          node.classList.add('opacity-60');
+          badge.className = 'step-badge w-8 h-8 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center font-semibold text-xs transition-all';
+          badge.innerHTML = `${i}`;
+        }
+      }
+
+      lucide.createIcons();
+
+      if (step === 2) {
+        buildRuleMatrix();
+      } else if (step === 3) {
+        generateLivePreview();
+      }
+    }
+
+    function readWorkbookFromBuffer(buffer) {
+      return XLSX.read(buffer, { type: 'array', cellDates: true, cellFormula: true, cellNF: true });
+    }
+
+    function extractColumnsFromSheet(sheet, headerRow = 1) {
+      const range = XLSX.utils.decode_range(sheet['!ref'] || 'A1:A1');
+      const columns = [];
+      const rowIdx = headerRow - 1; // 0-based for SheetJS internal coordinate
+
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const cellAddress = XLSX.utils.encode_cell({ r: rowIdx, c: C });
+        const cell = sheet[cellAddress];
+        const colNumber = C + 1;
+        const letter = getColumnLetter(colNumber);
+        const rawValue = cell ? String(cell.v).trim() : '';
+        const name = rawValue || `Unnamed_${letter}`;
+
+        columns.push({
+          colIdx: colNumber,
+          colLetter: letter,
+          name: name,
+          label: `[${letter}] ${name}`
+        });
+      }
+      return columns;
+    }
+
+    function parseSourceDataRows() {
+      if (!state.sourceWb || !state.sourceSheetName) return;
+      const ws = state.sourceWb.Sheets[state.sourceSheetName];
+      const allRows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+      state.sourceData = allRows;
+      state.sourceHeaders = extractColumnsFromSheet(ws, state.sourceHeaderRow);
+
+      // Render mini preview in Step 1
+      renderSourcePreviewSnippet();
+    }
+
+    function parseTemplateDataHeaders() {
+      if (!state.templateWb || !state.templateSheetName) return;
+      const ws = state.templateWb.Sheets[state.templateSheetName];
+      state.templateHeaders = extractColumnsFromSheet(ws, state.templateHeaderRow);
+
+      // Render chip preview
+      renderTemplateChips();
+    }
+
+    function renderSourcePreviewSnippet() {
+      const box = document.getElementById('source-table-preview-box');
+      const table = document.getElementById('source-table-preview');
+      const countEl = document.getElementById('source-row-count');
+      
+      const dataRows = state.sourceData.slice(state.sourceHeaderRow);
+      countEl.innerText = Math.max(0, dataRows.length);
+      box.classList.remove('hidden');
+
+      let html = '<thead><tr class="bg-slate-200/70 font-semibold text-slate-700">';
+      state.sourceHeaders.forEach(h => {
+        html += `<th class="p-2 table-cell-truncate">${h.label}</th>`;
+      });
+      html += '</tr></thead><tbody class="divide-y divide-slate-200">';
+
+      const previewRows = dataRows.slice(0, 4);
+      previewRows.forEach(row => {
+        html += '<tr class="hover:bg-slate-100/50">';
+        state.sourceHeaders.forEach(h => {
+          const val = row[h.colIdx - 1] !== undefined ? row[h.colIdx - 1] : '';
+          html += `<td class="p-2 table-cell-truncate text-slate-600">${val}</td>`;
+        });
+        html += '</tr>';
+      });
+      html += '</tbody>';
+      table.innerHTML = html;
+    }
+
+    function renderTemplateChips() {
+      const box = document.getElementById('template-table-preview-box');
+      const container = document.getElementById('template-headers-chips');
+      const countEl = document.getElementById('template-col-count');
+
+      countEl.innerText = state.templateHeaders.length;
+      box.classList.remove('hidden');
+
+      let chips = '';
+      state.templateHeaders.forEach(h => {
+        chips += `
+          <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-brand-50 border border-brand-200 text-brand-800 text-[11px] font-medium">
+            <span class="font-bold mr-1 text-brand-600">${h.colLetter}:</span> ${h.name}
+          </span>
+        `;
+      });
+      container.innerHTML = chips;
+    }
+
+    function checkReadyStep1() {
+      const btn = document.getElementById('btn-proceed-step-2');
+      if (state.sourceWb && state.templateWb) {
+        btn.disabled = false;
+        btn.className = 'px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs inline-flex items-center space-x-2 shadow-md shadow-brand-500/20 transition-all cursor-pointer';
+      } else {
+        btn.disabled = true;
+        btn.className = 'px-6 py-2.5 rounded-xl bg-slate-200 text-slate-400 cursor-not-allowed font-semibold text-xs inline-flex items-center space-x-2 transition-all shadow-xs';
+      }
+    }
+
+    function buildRuleMatrix(forceAuto = true) {
+      const tbody = document.getElementById('mapping-rules-body');
+      const totalCount = document.getElementById('total-rule-count');
+      const sensitivity = parseFloat(document.getElementById('match-sensitivity').value || 0.4);
+
+      tbody.innerHTML = '';
+      totalCount.innerText = state.templateHeaders.length;
+
+      // Rebuild rules list
+      if (forceAuto || state.rules.length === 0) {
+        state.rules = [];
+        state.templateHeaders.forEach(tCol => {
+          let bestScore = 0;
+          let bestSource = null;
+
+          state.sourceHeaders.forEach(sCol => {
+            const score = calculateMatchScore(tCol.name, sCol.name);
+            if (score > bestScore) {
+              bestScore = score;
+              bestSource = sCol;
+            }
+          });
+
+          const isAccepted = bestScore >= sensitivity && bestSource !== null;
+          state.rules.push({
+            templateColIdx: tCol.colIdx,
+            templateColLetter: tCol.colLetter,
+            templateName: tCol.name,
+            sourceColIdx: isAccepted ? bestSource.colIdx : null,
+            score: isAccepted ? bestScore : 0,
+            formulaType: 'DIRECT', // 'DIRECT' | 'VLOOKUP' | 'MATH' | 'CONCAT' | 'STATIC' | 'NONE'
+            customExpr: '',
+            lookupKeyColLetter: state.templateHeaders[0] ? state.templateHeaders[0].colLetter : 'A'
+          });
+        });
+      }
+
+      // Render Matrix Rows
+      state.rules.forEach((rule, idx) => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50/70 transition-colors border-b border-slate-100';
+
+        // Badge
+        let badgeHtml = '';
+        if (rule.sourceColIdx) {
+          if (rule.score >= 0.8) {
+            badgeHtml = `<span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">High (${Math.round(rule.score*100)}%)</span>`;
+          } else if (rule.score >= 0.4) {
+            badgeHtml = `<span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">Fuzzy (${Math.round(rule.score*100)}%)</span>`;
+          } else {
+            badgeHtml = `<span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600">Manual</span>`;
+          }
+        } else {
+          badgeHtml = `<span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-50 text-rose-600">Unmapped</span>`;
+        }
+
+        // Source Dropdown options
+        let sourceOptions = '<option value="">-- Skip / No Source --</option>';
+        state.sourceHeaders.forEach(s => {
+          const selected = rule.sourceColIdx === s.colIdx ? 'selected' : '';
+          sourceOptions += `<option value="${s.colIdx}" ${selected}>${s.label}</option>`;
+        });
+
+        // Template Key Column Options (for VLOOKUP)
+        let templateColOptions = '';
+        state.templateHeaders.forEach(t => {
+          const sel = rule.lookupKeyColLetter === t.colLetter ? 'selected' : '';
+          templateColOptions += `<option value="${t.colLetter}" ${sel}>Col [${t.colLetter}] ${t.name}</option>`;
+        });
+
+        tr.innerHTML = `
+          <!-- Column 1: Target Template Header -->
+          <td class="py-3 px-4 align-top">
+            <div class="flex items-center space-x-2">
+              <span class="w-6 h-6 rounded bg-brand-50 text-brand-700 font-mono font-bold flex items-center justify-center text-xs border border-brand-200">
+                ${rule.templateColLetter}
+              </span>
+              <div>
+                <p class="font-bold text-slate-800">${rule.templateName}</p>
+                <div class="mt-0.5">${badgeHtml}</div>
+              </div>
+            </div>
+          </td>
+
+          <!-- Column 2: Source Dropdown -->
+          <td class="py-3 px-4 align-top">
+            <select class="source-select w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-medium focus:ring-1 focus:ring-brand-500" data-idx="${idx}">
+              ${sourceOptions}
+            </select>
+          </td>
+
+          <!-- Column 3: Transformation Rule Type -->
+          <td class="py-3 px-4 align-top">
+            <div class="space-y-1.5">
+              <select class="rule-type-select w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-medium focus:ring-1 focus:ring-brand-500" data-idx="${idx}">
+                <option value="DIRECT" ${rule.formulaType === 'DIRECT' ? 'selected' : ''}>Direct Dynamic Link (=Source!Col)</option>
+                <option value="VLOOKUP" ${rule.formulaType === 'VLOOKUP' ? 'selected' : ''}>Dynamic VLOOKUP (=VLOOKUP(...))</option>
+                <option value="MATH" ${rule.formulaType === 'MATH' ? 'selected' : ''}>Math Expression (e.g. * 1.18)</option>
+                <option value="CONCAT" ${rule.formulaType === 'CONCAT' ? 'selected' : ''}>Concatenate with String</option>
+                <option value="STATIC" ${rule.formulaType === 'STATIC' ? 'selected' : ''}>Static Raw Value Copy</option>
+              </select>
+
+              <!-- Dynamic Sub-Configuration Fields -->
+              <div id="sub-config-${idx}" class="text-[11px] pt-1">
+                ${rule.formulaType === 'VLOOKUP' ? `
+                  <div class="flex items-center space-x-1.5 text-slate-600 bg-slate-100 p-1.5 rounded-md">
+                    <span>Key:</span>
+                    <select class="vlookup-key-select bg-white border border-slate-200 rounded px-1.5 py-0.5 text-[11px]" data-idx="${idx}">
+                      ${templateColOptions}
+                    </select>
+                  </div>
+                ` : ''}
+                ${rule.formulaType === 'MATH' ? `
+                  <div class="flex items-center space-x-1 bg-slate-100 p-1.5 rounded-md">
+                    <span class="text-slate-500 font-mono">fx: [Col]</span>
+                    <input type="text" class="math-expr-input bg-white border border-slate-200 rounded px-1.5 py-0.5 text-[11px] w-full" placeholder="* 1.18 or + 50" value="${rule.customExpr || '* 1.18'}" data-idx="${idx}">
+                  </div>
+                ` : ''}
+                ${rule.formulaType === 'CONCAT' ? `
+                  <div class="flex items-center space-x-1 bg-slate-100 p-1.5 rounded-md">
+                    <span class="text-slate-500 font-mono">Suffix:</span>
+                    <input type="text" class="concat-expr-input bg-white border border-slate-200 rounded px-1.5 py-0.5 text-[11px] w-full" placeholder=' - VERIFIED' value="${rule.customExpr || ' - OK'}" data-idx="${idx}">
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+          </td>
+
+          <!-- Column 4: Formula preview -->
+          <td class="py-3 px-4 align-top">
+            <div id="formula-sample-${idx}" class="formula-font bg-slate-50 border border-slate-200 text-brand-700 px-2.5 py-1.5 rounded-lg overflow-x-auto text-[11px] select-all">
+              ${generateExcelFormula(rule, 2)}
+            </div>
+          </td>
+        `;
+
+        tbody.appendChild(tr);
+      });
+
+      attachRuleEventListeners();
+    }
+
+    function generateExcelFormula(rule, rowNumber) {
+      if (!rule.sourceColIdx) return '<span class="text-slate-400 italic">Empty</span>';
+      
+      const sCol = state.sourceHeaders.find(h => h.colIdx === rule.sourceColIdx);
+      if (!sCol) return '<span class="text-slate-400 italic">Empty</span>';
+
+      const sourceSheetSafe = `'SourceData'`;
+      const sourceColLetter = sCol.colLetter;
+
+      switch (rule.formulaType) {
+        case 'DIRECT':
+          return `=${sourceSheetSafe}!${sourceColLetter}${rowNumber}`;
+        
+        case 'VLOOKUP':
+          const keyLetter = rule.lookupKeyColLetter || 'A';
+          const maxSourceLetter = state.sourceHeaders[state.sourceHeaders.length - 1].colLetter;
+          return `=VLOOKUP(${keyLetter}${rowNumber}, ${sourceSheetSafe}!A:${maxSourceLetter}, ${rule.sourceColIdx}, FALSE)`;
+        
+        case 'MATH':
+          const expr = rule.customExpr || '* 1.18';
+          return `=${sourceSheetSafe}!${sourceColLetter}${rowNumber} ${expr}`;
+
+        case 'CONCAT':
+          const suffix = rule.customExpr || ' - OK';
+          return `=CONCATENATE(${sourceSheetSafe}!${sourceColLetter}${rowNumber}, "${suffix}")`;
+
+        case 'STATIC':
+          return `<span class="text-emerald-600 font-semibold">[Static Value Copy]</span>`;
+
+        default:
+          return `=${sourceSheetSafe}!${sourceColLetter}${rowNumber}`;
+      }
+    }
+
+    function attachRuleEventListeners() {
+      // Source change
+      document.querySelectorAll('.source-select').forEach(el => {
+        el.addEventListener('change', (e) => {
+          const idx = parseInt(e.target.dataset.idx);
+          const val = e.target.value ? parseInt(e.target.value) : null;
+          state.rules[idx].sourceColIdx = val;
+          state.rules[idx].score = val ? 1.0 : 0;
+          updateRuleRowPreview(idx);
+        });
+      });
+
+      // Type change
+      document.querySelectorAll('.rule-type-select').forEach(el => {
+        el.addEventListener('change', (e) => {
+          const idx = parseInt(e.target.dataset.idx);
+          state.rules[idx].formulaType = e.target.value;
+          buildRuleMatrix(false); // redraw to show/hide sub options
+        });
+      });
+
+      // VLOOKUP key change
+      document.querySelectorAll('.vlookup-key-select').forEach(el => {
+        el.addEventListener('change', (e) => {
+          const idx = parseInt(e.target.dataset.idx);
+          state.rules[idx].lookupKeyColLetter = e.target.value;
+          updateRuleRowPreview(idx);
+        });
+      });
+
+      // Math expression
+      document.querySelectorAll('.math-expr-input').forEach(el => {
+        el.addEventListener('input', (e) => {
+          const idx = parseInt(e.target.dataset.idx);
+          state.rules[idx].customExpr = e.target.value;
+          updateRuleRowPreview(idx);
+        });
+      });
+
+      // Concat expression
+      document.querySelectorAll('.concat-expr-input').forEach(el => {
+        el.addEventListener('input', (e) => {
+          const idx = parseInt(e.target.dataset.idx);
+          state.rules[idx].customExpr = e.target.value;
+          updateRuleRowPreview(idx);
+        });
+      });
+    }
+
+    function updateRuleRowPreview(idx) {
+      const box = document.getElementById(`formula-sample-${idx}`);
+      if (box) {
+        box.innerHTML = generateExcelFormula(state.rules[idx], 2);
+      }
+    }
+
+    function evaluateSampleValue(rule, sourceRowValues) {
+      if (!rule.sourceColIdx) return '';
+      const rawVal = sourceRowValues[rule.sourceColIdx - 1];
+      if (rawVal === undefined || rawVal === null) return '';
+
+      if (rule.formulaType === 'STATIC' || rule.formulaType === 'DIRECT' || rule.formulaType === 'VLOOKUP') {
+        return rawVal;
+      } else if (rule.formulaType === 'MATH') {
+        const num = parseFloat(rawVal);
+        if (isNaN(num)) return rawVal;
+        try {
+          // Safe lightweight arithmetic evaluator for preview
+          const expr = rule.customExpr.replace(/[^0-9\.\+\-\*\/]/g, '');
+          const fn = new Function('x', `return x ${expr}`);
+          return fn(num).toFixed(2);
+        } catch {
+          return rawVal;
+        }
+      } else if (rule.formulaType === 'CONCAT') {
+        return String(rawVal) + (rule.customExpr || ' - OK');
+      }
+      return rawVal;
+    }
+
+    function generateLivePreview() {
+      const dataRows = state.sourceData.slice(state.sourceHeaderRow);
+      const totalDataRows = dataRows.length;
+
+      // Update statistics
+      document.getElementById('stat-source-rows').innerText = totalDataRows.toLocaleString();
+      const mappedCount = state.rules.filter(r => r.sourceColIdx !== null).length;
+      document.getElementById('stat-mapped-cols').innerText = `${mappedCount} / ${state.rules.length}`;
+      document.getElementById('stat-formula-count').innerText = (mappedCount * totalDataRows).toLocaleString();
+
+      // Render Header Row
+      const thead = document.getElementById('preview-table-header');
+      let thHtml = '<tr><th class="py-2.5 px-3 bg-slate-200/80 text-slate-500 w-12 text-center">#</th>';
+      state.templateHeaders.forEach(th => {
+        thHtml += `
+          <th class="py-2.5 px-3 border-l border-slate-200">
+            <div class="flex items-center space-x-1.5">
+              <span class="text-brand-600 font-mono text-[11px] font-bold">[${th.colLetter}]</span>
+              <span class="text-slate-800 font-bold">${th.name}</span>
+            </div>
+          </th>
+        `;
+      });
+      thHtml += '</tr>';
+      thead.innerHTML = thHtml;
+
+      renderPreviewTableBody();
+    }
+
+    function renderPreviewTableBody() {
+      const tbody = document.getElementById('preview-table-body');
+      tbody.innerHTML = '';
+
+      const dataRows = state.sourceData.slice(state.sourceHeaderRow);
+      const totalDataRows = dataRows.length;
+      const totalPages = Math.max(1, Math.ceil(totalDataRows / state.previewPageSize));
+
+      if (state.previewPage > totalPages) state.previewPage = totalPages;
+      if (state.previewPage < 1) state.previewPage = 1;
+
+      document.getElementById('preview-page-indicator').innerText = `${state.previewPage} / ${totalPages}`;
+      document.getElementById('btn-prev-page').disabled = state.previewPage === 1;
+      document.getElementById('btn-next-page').disabled = state.previewPage === totalPages;
+
+      const startIndex = (state.previewPage - 1) * state.previewPageSize;
+      const pageRows = dataRows.slice(startIndex, startIndex + state.previewPageSize);
+
+      pageRows.forEach((row, offset) => {
+        const rowNumberInExcel = state.templateHeaderRow + 1 + startIndex + offset;
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-brand-50/20 transition-colors border-b border-slate-100';
+
+        let rowHtml = `<td class="py-2 px-3 text-center text-slate-400 bg-slate-50 font-sans text-[10px] font-medium border-r border-slate-100">${rowNumberInExcel}</td>`;
+
+        state.rules.forEach(rule => {
+          if (state.previewMode === 'formula') {
+            const rawFormula = generateExcelFormula(rule, rowNumberInExcel);
+            rowHtml += `<td class="py-2 px-3 border-l border-slate-100 text-brand-600 font-mono text-[10px] bg-slate-50/50">${rawFormula}</td>`;
+          } else {
+            const evalValue = evaluateSampleValue(rule, row);
+            rowHtml += `<td class="py-2 px-3 border-l border-slate-100 text-slate-800 font-sans text-xs">${evalValue !== '' ? evalValue : '<span class="text-slate-300">-</span>'}</td>`;
+          }
+        });
+
+        tr.innerHTML = rowHtml;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function exportProcessedWorkbook() {
+      if (!state.sourceWb || !state.templateWb) return;
+
+      showToast('Generating multi-sheet workbook with active dynamic formulas...', 'info');
+
+      try {
+        const outWb = XLSX.utils.book_new();
+
+        // 1. Copy SourceData sheet verbatim
+        const srcSheetOriginal = state.sourceWb.Sheets[state.sourceSheetName];
+        XLSX.utils.book_append_sheet(outWb, srcSheetOriginal, 'SourceData');
+
+        // 2. Build Destination Populated Sheet
+        const outWs = {};
+        const dataRows = state.sourceData.slice(state.sourceHeaderRow);
+        const dataRowCount = dataRows.length;
+
+        // Copy template header cells
+        state.templateHeaders.forEach(th => {
+          const addr = `${th.colLetter}${state.templateHeaderRow}`;
+          outWs[addr] = { t: 's', v: th.name };
+        });
+
+        // Inject formulas into each row
+        const startRow = state.templateHeaderRow + 1;
+        const totalRows = startRow + dataRowCount - 1;
+
+        for (let r = startRow; r <= totalRows; r++) {
+          const dataRowIndex = r - startRow;
+          const currentSourceRow = dataRows[dataRowIndex];
+
+          state.rules.forEach(rule => {
+            if (!rule.sourceColIdx) return;
+            const targetCellAddr = `${rule.templateColLetter}${r}`;
+            const sCol = state.sourceHeaders.find(h => h.colIdx === rule.sourceColIdx);
+            if (!sCol) return;
+
+            if (rule.formulaType === 'STATIC') {
+              const val = currentSourceRow[rule.sourceColIdx - 1];
+              outWs[targetCellAddr] = {
+                t: typeof val === 'number' ? 'n' : 's',
+                v: val !== undefined ? val : ''
+              };
+            } else if (rule.formulaType === 'DIRECT') {
+              // Real Excel formula without leading equal sign for SheetJS .f property
+              const f = `SourceData!${sCol.colLetter}${state.sourceHeaderRow + 1 + dataRowIndex}`;
+              outWs[targetCellAddr] = { t: 'n', f: f };
+            } else if (rule.formulaType === 'VLOOKUP') {
+              const keyCell = `${rule.lookupKeyColLetter}${r}`;
+              const maxLetter = state.sourceHeaders[state.sourceHeaders.length - 1].colLetter;
+              const f = `VLOOKUP(${keyCell},SourceData!A:${maxLetter},${rule.sourceColIdx},FALSE)`;
+              outWs[targetCellAddr] = { t: 'n', f: f };
+            } else if (rule.formulaType === 'MATH') {
+              const expr = rule.customExpr || '* 1.18';
+              const f = `SourceData!${sCol.colLetter}${state.sourceHeaderRow + 1 + dataRowIndex} ${expr}`;
+              outWs[targetCellAddr] = { t: 'n', f: f };
+            } else if (rule.formulaType === 'CONCAT') {
+              const suffix = rule.customExpr || ' - OK';
+              const f = `CONCATENATE(SourceData!${sCol.colLetter}${state.sourceHeaderRow + 1 + dataRowIndex}, "${suffix}")`;
+              outWs[targetCellAddr] = { t: 's', f: f };
+            }
+          });
+        }
+
+        // Set dimensions for the output worksheet
+        const maxTemplateLetter = state.templateHeaders[state.templateHeaders.length - 1].colLetter;
+        outWs['!ref'] = `A1:${maxTemplateLetter}${totalRows}`;
+
+        // Append to workbook
+        XLSX.utils.book_append_sheet(outWb, outWs, 'PopulatedTemplate');
+
+        // Write file and trigger download
+        XLSX.writeFile(outWb, 'AutoSpread_Processed_Output.xlsx');
+        showToast('Workbook successfully downloaded with active formulas!', 'success');
+      } catch (err) {
+        console.error(err);
+        showToast('Export error: ' + err.message, 'error');
+      }
+    }
+
+    function loadEnterpriseDemo() {
+      // 1. Create realistic source data (E-commerce order transactions)
+      const demoSourceData = [
+        ['Order_ID', 'Customer_Full_Name', 'Order_Date', 'Product_SKU', 'Unit_Price', 'Quantity_Ordered', 'Payment_Status'],
+        ['ORD-9021', 'Aarav Sharma', '2026-03-01', 'LAPTOP-PRO-16', 1450, 1, 'PAID'],
+        ['ORD-9022', 'Sanjoy Mukherjee', '2026-03-02', 'MONITOR-4K-27', 420, 2, 'PAID'],
+        ['ORD-9023', 'Emily Watson', '2026-03-02', 'KEYBOARD-MECH-RGB', 110, 3, 'PENDING'],
+        ['ORD-9024', 'Priya Patel', '2026-03-03', 'MOUSE-WIRELESS-BT', 45, 5, 'PAID'],
+        ['ORD-9025', 'Carlos Gomez', '2026-03-04', 'DOCK-STATION-TB4', 180, 2, 'PAID'],
+        ['ORD-9026', 'Mei Ling', '2026-03-05', 'HEADSET-NC-PRO', 250, 1, 'PAID'],
+        ['ORD-9027', 'David Kim', '2026-03-05', 'STAND-ALUMINUM', 35, 4, 'REFUNDED']
+      ];
+      const wsSource = XLSX.utils.aoa_to_sheet(demoSourceData);
+      const wbSource = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wbSource, wsSource, 'Transactions');
+
+      // 2. Create realistic template with different naming & intentional duplicate column names
+      // Note: Col A is Date, Col E is also Date (Posting Date); Col C is Amount, Col F is Amount (with Tax)
+      const demoTemplateHeaders = [
+        ['Date', 'Invoice ID', 'Client Name', 'Item Code', 'Date', 'Gross Amount', 'Tax Included (Formula)']
+      ];
+      const wsTemplate = XLSX.utils.aoa_to_sheet(demoTemplateHeaders);
+      const wbTemplate = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wbTemplate, wsTemplate, 'FinanceSummary');
+
+      // Inject into state
+      state.sourceWb = wbSource;
+      state.sourceSheetName = 'Transactions';
+      state.sourceHeaderRow = 1;
+      parseSourceDataRows();
+
+      state.templateWb = wbTemplate;
+      state.templateSheetName = 'FinanceSummary';
+      state.templateHeaderRow = 1;
+      parseTemplateDataHeaders();
+
+      // UI updates
+      document.getElementById('data-status-badge').className = 'text-[11px] font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200';
+      document.getElementById('data-status-badge').innerText = 'Transactions.xlsx (Demo)';
+      document.getElementById('source-controls').classList.remove('hidden');
+      document.getElementById('source-sheet-select').innerHTML = '<option value="Transactions">Transactions</option>';
+
+      document.getElementById('template-status-badge').className = 'text-[11px] font-medium px-2 py-0.5 rounded-full bg-brand-50 text-brand-700 border border-brand-200';
+      document.getElementById('template-status-badge').innerText = 'FinanceSummary.xlsx (Demo)';
+      document.getElementById('template-controls').classList.remove('hidden');
+      document.getElementById('template-sheet-select').innerHTML = '<option value="FinanceSummary">FinanceSummary</option>';
+
+      checkReadyStep1();
+      showToast('Enterprise Demo loaded! Notice different headers and duplicate "Date" fields.', 'success');
+      
+      // Auto move to Step 2 so user sees immediate results
+      setTimeout(() => goToStep(2), 500);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+
+      // Drag and Drop & Input File Handlers
+      function setupFileLoader(dropId, inputId, isSource) {
+        const dropZone = document.getElementById(dropId);
+        const inputEl = document.getElementById(inputId);
+
+        dropZone.addEventListener('click', () => inputEl.click());
+        dropZone.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          dropZone.classList.add('border-brand-500', 'bg-brand-50/50');
+        });
+        dropZone.addEventListener('dragleave', () => {
+          dropZone.classList.remove('border-brand-500', 'bg-brand-50/50');
+        });
+        dropZone.addEventListener('drop', (e) => {
+          e.preventDefault();
+          dropZone.classList.remove('border-brand-500', 'bg-brand-50/50');
+          if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            processFile(e.dataTransfer.files[0], isSource);
+          }
+        });
+        inputEl.addEventListener('change', (e) => {
+          if (e.target.files && e.target.files[0]) {
+            processFile(e.target.files[0], isSource);
+          }
+        });
+      }
+
+      function processFile(file, isSource) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const data = new Uint8Array(e.target.result);
+          const wb = readWorkbookFromBuffer(data);
+
+          if (isSource) {
+            state.sourceWb = wb;
+            state.sourceSheetName = wb.SheetNames[0];
+            const select = document.getElementById('source-sheet-select');
+            select.innerHTML = wb.SheetNames.map(s => `<option value="${s}">${s}</option>`).join('');
+            document.getElementById('source-controls').classList.remove('hidden');
+            document.getElementById('data-status-badge').className = 'text-[11px] font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200';
+            document.getElementById('data-status-badge').innerText = file.name;
+            parseSourceDataRows();
+          } else {
+            state.templateWb = wb;
+            state.templateSheetName = wb.SheetNames[0];
+            const select = document.getElementById('template-sheet-select');
+            select.innerHTML = wb.SheetNames.map(s => `<option value="${s}">${s}</option>`).join('');
+            document.getElementById('template-controls').classList.remove('hidden');
+            document.getElementById('template-status-badge').className = 'text-[11px] font-medium px-2 py-0.5 rounded-full bg-brand-50 text-brand-700 border border-brand-200';
+            document.getElementById('template-status-badge').innerText = file.name;
+            parseTemplateDataHeaders();
+          }
+
+          checkReadyStep1();
+          showToast(`Loaded ${file.name} successfully`, 'success');
+        };
+        reader.readAsArrayBuffer(file);
+      }
+
+      setupFileLoader('drop-source', 'input-source', true);
+      setupFileLoader('drop-template', 'input-template', false);
+
+      // Sheet and Header row changes
+      document.getElementById('source-sheet-select').addEventListener('change', (e) => {
+        state.sourceSheetName = e.target.value;
+        parseSourceDataRows();
+      });
+      document.getElementById('template-sheet-select').addEventListener('change', (e) => {
+        state.templateSheetName = e.target.value;
+        parseTemplateDataHeaders();
+      });
+      document.getElementById('source-header-row').addEventListener('change', (e) => {
+        state.sourceHeaderRow = Math.max(1, parseInt(e.target.value) || 1);
+        parseSourceDataRows();
+      });
+      document.getElementById('template-header-row').addEventListener('change', (e) => {
+        state.templateHeaderRow = Math.max(1, parseInt(e.target.value) || 1);
+        parseTemplateDataHeaders();
+      });
+
+      // Step navigation buttons
+      document.getElementById('btn-proceed-step-2').addEventListener('click', () => goToStep(2));
+      document.getElementById('btn-proceed-step-3').addEventListener('click', () => goToStep(3));
+
+      // Auto-match controls
+      document.getElementById('btn-trigger-automatch').addEventListener('click', () => {
+        buildRuleMatrix(true);
+        showToast('Header Auto-Match re-calculated!', 'success');
+      });
+      document.getElementById('match-sensitivity').addEventListener('change', () => {
+        buildRuleMatrix(true);
+      });
+      document.getElementById('btn-clear-rules').addEventListener('click', () => {
+        state.rules.forEach(r => { r.sourceColIdx = null; r.score = 0; });
+        buildRuleMatrix(false);
+        showToast('All column links cleared.', 'info');
+      });
+
+      // Preview view mode toggle
+      document.getElementById('btn-view-evaluated').addEventListener('click', () => {
+        state.previewMode = 'evaluated';
+        document.getElementById('btn-view-evaluated').className = 'px-2.5 py-1 rounded-md font-semibold text-xs bg-white text-slate-900 shadow-xs transition-colors';
+        document.getElementById('btn-view-formulas').className = 'px-2.5 py-1 rounded-md font-semibold text-xs text-slate-600 hover:text-slate-900 transition-colors';
+        renderPreviewTableBody();
+      });
+      document.getElementById('btn-view-formulas').addEventListener('click', () => {
+        state.previewMode = 'formula';
+        document.getElementById('btn-view-formulas').className = 'px-2.5 py-1 rounded-md font-semibold text-xs bg-white text-slate-900 shadow-xs transition-colors';
+        document.getElementById('btn-view-evaluated').className = 'px-2.5 py-1 rounded-md font-semibold text-xs text-slate-600 hover:text-slate-900 transition-colors';
+        renderPreviewTableBody();
+      });
+
+      // Pagination
+      document.getElementById('btn-prev-page').addEventListener('click', () => {
+        state.previewPage--;
+        renderPreviewTableBody();
+      });
+      document.getElementById('btn-next-page').addEventListener('click', () => {
+        state.previewPage++;
+        renderPreviewTableBody();
+      });
+
+      // Export Buttons
+      document.getElementById('btn-export-excel').addEventListener('click', exportProcessedWorkbook);
+      document.getElementById('btn-export-excel-2').addEventListener('click', exportProcessedWorkbook);
+
+      // Demo & Reset
+      document.getElementById('btn-load-demo').addEventListener('click', loadEnterpriseDemo);
+      document.getElementById('btn-reset-all').addEventListener('click', () => {
+        window.location.reload();
+      });
+    });
+  </script>
+</body>
+</html>
